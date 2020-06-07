@@ -19,16 +19,17 @@ import com.gs.fw.common.mithra.databasetype.H2DatabaseType;
 import org.apache.commons.io.FilenameUtils;
 import org.h2.tools.RunScript;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.TimeZone;
-import java.util.stream.Stream;
+import java.util.*;
 
 public class ReladomoConnectionManager implements SourcelessConnectionManager {
 
@@ -87,8 +88,12 @@ public class ReladomoConnectionManager implements SourcelessConnectionManager {
         return databaseName;
     }
 
+    public File[] getFiles() throws URISyntaxException {
+        return new File(this.getClass().getClassLoader().getResource("sql").toURI().getPath()).listFiles();
+    }
+
     public void createTables() throws Exception{
-        Path ddlPath = Paths.get(this.getClass().getClassLoader().getResource("sql").toURI());
+        Path ddlPath = Paths.get(this.getClass().getClassLoader().getResource("/sql").toURI());
         ArrayList<String> executionOrder = new ArrayList<>(Arrays.asList("ddl","idx","fk"));
         executionOrder.forEach(extension -> {
             try {
@@ -97,6 +102,28 @@ public class ReladomoConnectionManager implements SourcelessConnectionManager {
                 e.printStackTrace();
             }
         });
+    }
+    public void execute() throws URISyntaxException {
+        HashMap<String,Integer> sortOrder = new HashMap<>();
+        sortOrder.put("ddl",0);
+        sortOrder.put("idx",1);
+        sortOrder.put("fk",2);
+        File[] files = getFiles();
+        Arrays.stream(files).sorted(Comparator.comparingInt(o -> sortOrder.get(FilenameUtils.getExtension(o.getAbsolutePath()))))
+                .forEach(file -> {
+                    try {
+                        execute(file.getAbsolutePath());
+                    } catch (SQLException | IOException throwables) {
+                        throwables.printStackTrace();
+                    }
+                });
+    }
+    public void execute(String path) throws SQLException, IOException {
+        try(Connection connection = xaConnectionManager.getConnection()) {
+            FileReader fileReader = new FileReader(path);
+            RunScript.execute(connection,fileReader);
+            fileReader.close();
+        }
     }
     public void execute(String extension, Path ddlPath) throws Exception{
         try(Connection connection = xaConnectionManager.getConnection()){

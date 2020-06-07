@@ -19,7 +19,7 @@ import java.io.InputStream;
 public class App {
     public static void main(String...args){
         try {
-            ReladomoConnectionManager.getInstance().createTables();
+            ReladomoConnectionManager.getInstance().execute();
         } catch (Exception e) {
             e.printStackTrace();
         }
