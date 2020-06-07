@@ -1,0 +1,6 @@
+<MithraRuntime>
+    <ConnectionManager className="com.apricot.reladomo.ReladomoConnectionManager">
+        <MithraObjectConfiguration className="com.apricot.Department" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.apricot.Employee " cacheType="partial"/>
+    </ConnectionManager>
+</MithraRuntime>
